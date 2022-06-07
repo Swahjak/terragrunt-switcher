@@ -9,17 +9,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/warrensbox/terraform-switcher/lib"
+	"github.com/Swahjak/terragrunt-switcher/lib"
 )
 
 // TestDownloadFromURL_FileNameMatch : Check expected filename exist when downloaded
 func TestDownloadFromURL_FileNameMatch(t *testing.T) {
 
-	hashiURL := "https://releases.hashicorp.com/terraform/"
-	installVersion := "terraform_"
+	mirrorUrl := "https://github.com/gruntwork-io/terragrunt/releases/download/"
+	installVersion := "terragrunt_"
 	tempDir := t.TempDir()
-	installPath := fmt.Sprintf(tempDir + string(os.PathSeparator) + ".terraform.versions_test")
-	macOS := "_darwin_amd64.zip"
+	installPath := fmt.Sprintf(tempDir + string(os.PathSeparator) + ".terragrunt.versions_test")
+	macOS := "darwin_amd64"
 
 	// get current user
 	usr, errCurr := user.Current()
@@ -30,21 +30,21 @@ func TestDownloadFromURL_FileNameMatch(t *testing.T) {
 	fmt.Printf("Current user: %v \n", usr.HomeDir)
 	installLocation := filepath.Join(usr.HomeDir, installPath)
 
-	// create /.terraform.versions_test/ directory to store code
+	// create /.terragrunt.versions_test/ directory to store code
 	if _, err := os.Stat(installLocation); os.IsNotExist(err) {
-		t.Logf("Creating directory for terraform: %v", installLocation)
+		t.Logf("Creating directory for terragrunt: %v", installLocation)
 		err = os.MkdirAll(installLocation, 0755)
 		if err != nil {
-			t.Logf("Unable to create directory for terraform: %v", installLocation)
+			t.Logf("Unable to create directory for terragrunt: %v", installLocation)
 			t.Error("Test fail")
 		}
 	}
 
-	/* test download old terraform version */
-	lowestVersion := "0.11.0"
+	/* test download old terragrunt version */
+	lowestVersion := "0.26.7"
 
-	url := hashiURL + lowestVersion + "/" + installVersion + lowestVersion + macOS
-	expectedFile := filepath.Join(usr.HomeDir, installPath, installVersion+lowestVersion+macOS)
+	url := mirrorUrl + "v" + lowestVersion + "/" + installVersion + macOS
+	expectedFile := filepath.Join(usr.HomeDir, installPath, installVersion+macOS)
 	installedFile, errDownload := lib.DownloadFromURL(installLocation, url)
 
 	if errDownload != nil {
@@ -74,12 +74,12 @@ func TestDownloadFromURL_FileNameMatch(t *testing.T) {
 	})
 }
 
-// // TestDownloadFromURL_Valid : Test if https://releases.hashicorp.com/terraform/ is still valid
+// // TestDownloadFromURL_Valid : Test if https://releases.hashicorp.com/terragrunt/ is still valid
 func TestDownloadFromURL_Valid(t *testing.T) {
 
-	hashiURL := "https://releases.hashicorp.com/terraform/"
+	mirrorUrl := "https://github.com/gruntwork-io/terragrunt/releases/download/"
 
-	url, err := url.ParseRequestURI(hashiURL)
+	url, err := url.ParseRequestURI(mirrorUrl)
 	if err != nil {
 		t.Errorf("Invalid URL %v [unexpected]", err)
 	} else {

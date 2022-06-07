@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,51 +10,56 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 )
 
-type tfVersionList struct {
-	tflist []string
+type tgVersionList struct {
+	tgList []string
 }
 
-//GetTFList :  Get the list of available terraform version given the hashicorp url
-func GetTFList(mirrorURL string, preRelease bool) ([]string, error) {
+//GetTGList :  Get the list of available terraform version given the hashicorp url
+func GetTGList(versionUrl string, preRelease bool) ([]string, error) {
 
-	result, error := GetTFURLBody(mirrorURL)
+	var tgVersionList tgVersionList
+	result, error := GetTGURLBody(versionUrl)
+
 	if error != nil {
-		return nil, error
+		log.Println(error)
+		os.Exit(1)
+
+		return tgVersionList.tgList, error
 	}
 
-	var tfVersionList tfVersionList
 	var semver string
 	if preRelease == true {
 		// Getting versions from body; should return match /X.X.X-@/ where X is a number,@ is a word character between a-z or A-Z
-		semver = `\/(\d+\.\d+\.\d+)(-[a-zA-z]+\d*)?"`
+		semver = `^(\d+\.\d+\.\d+)(-[a-zA-z]+\d*)?$`
 	} else if preRelease == false {
 		// Getting versions from body; should return match /X.X.X/ where X is a number
-		// without the ending '"' pre-release folders would be tried and break.
-		semver = `\/(\d+\.\d+\.\d+)\/?"`
+		semver = `^(\d+\.\d+\.\d+)$`
 	}
+
 	r, _ := regexp.Compile(semver)
 	for i := range result {
 		if r.MatchString(result[i]) {
 			str := r.FindString(result[i])
 			trimstr := strings.Trim(str, "/\"") //remove '/' or '"' from /X.X.X/" or /X.X.X"
-			tfVersionList.tflist = append(tfVersionList.tflist, trimstr)
+			tgVersionList.tgList = append(tgVersionList.tgList, trimstr)
 		}
 	}
 
-	if len(tfVersionList.tflist) == 0 {
-		fmt.Printf("Cannot get list from mirror: %s\n", mirrorURL)
+	if len(tgVersionList.tgList) == 0 {
+		fmt.Printf("Cannot get list from mirror: %s\n", versionUrl)
 	}
 
-	return tfVersionList.tflist, nil
+	return tgVersionList.tgList, nil
 
 }
 
-//GetTFLatest :  Get the latest terraform version given the hashicorp url
-func GetTFLatest(mirrorURL string) (string, error) {
+//GetTGLatest :  Get the latest terraform version given the hashicorp url
+func GetTGLatest(versionUrl string) (string, error) {
 
-	result, error := GetTFURLBody(mirrorURL)
+	result, error := GetTGURLBody(versionUrl)
 	if error != nil {
 		return "", error
 	}
@@ -71,12 +77,12 @@ func GetTFLatest(mirrorURL string) (string, error) {
 	return "", nil
 }
 
-//GetTFLatestImplicit :  Get the latest implicit terraform version given the hashicorp url
-func GetTFLatestImplicit(mirrorURL string, preRelease bool, version string) (string, error) {
+//GetTGLatestImplicit :  Get the latest implicit terraform version given the hashicorp url
+func GetTGLatestImplicit(versionUrl string, preRelease bool, version string) (string, error) {
 
 	if preRelease == true {
-		//TODO: use GetTFList() instead of GetTFURLBody
-		versions, error := GetTFURLBody(mirrorURL)
+		//TODO: use GetTGList() instead of GetTGURLBody
+		versions, error := GetTGURLBody(versionUrl)
 		if error != nil {
 			return "", error
 		}
@@ -95,9 +101,9 @@ func GetTFLatestImplicit(mirrorURL string, preRelease bool, version string) (str
 		}
 	} else if preRelease == false {
 		listAll := false
-		tflist, _ := GetTFList(mirrorURL, listAll) //get list of versions
+		tgList, _ := GetTGList(versionUrl, listAll) //get list of versions
 		version = fmt.Sprintf("~> %v", version)
-		semv, err := SemVerParser(&version, tflist)
+		semv, err := SemVerParser(&version, tgList)
 		if err != nil {
 			return "", err
 		}
@@ -106,37 +112,48 @@ func GetTFLatestImplicit(mirrorURL string, preRelease bool, version string) (str
 	return "", nil
 }
 
-//GetTFURLBody : Get list of terraform versions from hashicorp releases
-func GetTFURLBody(mirrorURL string) ([]string, error) {
-
-	hasSlash := strings.HasSuffix(mirrorURL, "/")
-	if !hasSlash { //if does not have slash - append slash
-		mirrorURL = fmt.Sprintf("%s/", mirrorURL)
+//GetTGURLBody : Get list of terraform versions from hashicorp releases
+func GetTGURLBody(versionUrl string) ([]string, error) {
+	gswitch := http.Client{
+		Timeout: time.Second * 10, // Maximum of 10 secs [decresing this seem to fail]
 	}
-	resp, errURL := http.Get(mirrorURL)
-	if errURL != nil {
-		log.Printf("[Error] : Getting url: %v", errURL)
+
+	req, err := http.NewRequest(http.MethodGet, versionUrl, nil)
+	if err != nil {
+		log.Println("[Error] Unable to make request. Please try again.")
 		os.Exit(1)
-		return nil, errURL
+		return nil, err
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		log.Printf("[Error] : Retrieving contents from url: %s", mirrorURL)
+	req.Header.Set("User-Agent", "github-appinstaller")
+
+	res, getErr := gswitch.Do(req)
+	if getErr != nil {
+		log.Println("[Error] Unable to make request Please try again.")
 		os.Exit(1)
+		return nil, getErr
 	}
 
-	body, errBody := ioutil.ReadAll(resp.Body)
-	if errBody != nil {
-		log.Printf("[Error] : reading body: %v", errBody)
+	body, readErr := ioutil.ReadAll(res.Body)
+	if readErr != nil {
+		log.Println("[Error] Unable to get release from repo ", string(body))
 		os.Exit(1)
-		return nil, errBody
+		return nil, readErr
 	}
 
-	bodyString := string(body)
-	result := strings.Split(bodyString, "\n")
+	var repo ListVersion
+	jsonErr := json.Unmarshal(body, &repo)
+	if jsonErr != nil {
+		log.Println("[Error] Unable to get release from repo ", string(body))
+		os.Exit(1)
+		return nil, jsonErr
+	}
 
-	return result, nil
+	return repo.Versions, nil
+}
+
+type ListVersion struct {
+	Versions []string `json:"Versions"`
 }
 
 //VersionExist : check if requested version exist

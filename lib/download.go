@@ -28,10 +28,10 @@ func DownloadFromURL(installLocation string, url string) (string, error) {
 		return "", fmt.Errorf("[Error] : Unable to download from %s", url)
 	}
 
-	zipFile := filepath.Join(installLocation, fileName)
-	output, err := os.Create(zipFile)
+	binFile := filepath.Join(installLocation, fileName)
+	output, err := os.Create(binFile)
 	if err != nil {
-		fmt.Println("[Error] : Error while creating", zipFile, "-", err)
+		fmt.Println("[Error] : Error while creating", binFile, "-", err)
 		return "", err
 	}
 	defer output.Close()
@@ -43,5 +43,5 @@ func DownloadFromURL(installLocation string, url string) (string, error) {
 	}
 
 	fmt.Println(n, "bytes downloaded")
-	return zipFile, nil
+	return binFile, nil
 }

@@ -4,13 +4,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/warrensbox/terraform-switcher/lib"
+	"github.com/Swahjak/terragrunt-switcher/lib"
 )
 
 // TestNewCommand : pass value and check if returned value is a pointer
 func TestNewCommand(t *testing.T) {
 
-	testCmd := "terraform"
+	testCmd := "terragrunt"
 	cmd := lib.NewCommand(testCmd)
 
 	if reflect.ValueOf(cmd).Kind() == reflect.Ptr {
