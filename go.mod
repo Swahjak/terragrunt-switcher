@@ -1,4 +1,4 @@
-module github.com/warrensbox/terraform-switcher
+module github.com/Swahjak/terragrunt-switcher
 
 go 1.18
 

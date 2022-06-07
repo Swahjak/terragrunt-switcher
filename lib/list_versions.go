@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type tfVersionList struct {
@@ -16,14 +18,18 @@ type tfVersionList struct {
 }
 
 //GetTFList :  Get the list of available terraform version given the hashicorp url
-func GetTFList(mirrorURL string, preRelease bool) ([]string, error) {
-
-	result, error := GetTFURLBody(mirrorURL)
-	if error != nil {
-		return nil, error
-	}
+func GetTFList(versionUrl string, preRelease bool) ([]string, error) {
 
 	var tfVersionList tfVersionList
+	result, error := GetTFURLBody(versionUrl)
+
+	if error != nil {
+		log.Println(error)
+		os.Exit(1)
+
+		return tfVersionList.tflist, error
+	}
+
 	var semver string
 	if preRelease == true {
 		// Getting versions from body; should return match /X.X.X-@/ where X is a number,@ is a word character between a-z or A-Z
@@ -43,7 +49,7 @@ func GetTFList(mirrorURL string, preRelease bool) ([]string, error) {
 	}
 
 	if len(tfVersionList.tflist) == 0 {
-		fmt.Printf("Cannot get list from mirror: %s\n", mirrorURL)
+		fmt.Printf("Cannot get list from mirror: %s\n", versionUrl)
 	}
 
 	return tfVersionList.tflist, nil
@@ -51,9 +57,9 @@ func GetTFList(mirrorURL string, preRelease bool) ([]string, error) {
 }
 
 //GetTFLatest :  Get the latest terraform version given the hashicorp url
-func GetTFLatest(mirrorURL string) (string, error) {
+func GetTFLatest(versionUrl string) (string, error) {
 
-	result, error := GetTFURLBody(mirrorURL)
+	result, error := GetTFURLBody(versionUrl)
 	if error != nil {
 		return "", error
 	}
@@ -72,11 +78,11 @@ func GetTFLatest(mirrorURL string) (string, error) {
 }
 
 //GetTFLatestImplicit :  Get the latest implicit terraform version given the hashicorp url
-func GetTFLatestImplicit(mirrorURL string, preRelease bool, version string) (string, error) {
+func GetTFLatestImplicit(versionUrl string, preRelease bool, version string) (string, error) {
 
 	if preRelease == true {
 		//TODO: use GetTFList() instead of GetTFURLBody
-		versions, error := GetTFURLBody(mirrorURL)
+		versions, error := GetTFURLBody(versionUrl)
 		if error != nil {
 			return "", error
 		}
@@ -95,7 +101,7 @@ func GetTFLatestImplicit(mirrorURL string, preRelease bool, version string) (str
 		}
 	} else if preRelease == false {
 		listAll := false
-		tflist, _ := GetTFList(mirrorURL, listAll) //get list of versions
+		tflist, _ := GetTFList(versionUrl, listAll) //get list of versions
 		version = fmt.Sprintf("~> %v", version)
 		semv, err := SemVerParser(&version, tflist)
 		if err != nil {
@@ -107,36 +113,47 @@ func GetTFLatestImplicit(mirrorURL string, preRelease bool, version string) (str
 }
 
 //GetTFURLBody : Get list of terraform versions from hashicorp releases
-func GetTFURLBody(mirrorURL string) ([]string, error) {
-
-	hasSlash := strings.HasSuffix(mirrorURL, "/")
-	if !hasSlash { //if does not have slash - append slash
-		mirrorURL = fmt.Sprintf("%s/", mirrorURL)
+func GetTFURLBody(versionUrl string) ([]string, error) {
+	gswitch := http.Client{
+		Timeout: time.Second * 10, // Maximum of 10 secs [decresing this seem to fail]
 	}
-	resp, errURL := http.Get(mirrorURL)
-	if errURL != nil {
-		log.Printf("[Error] : Getting url: %v", errURL)
+
+	req, err := http.NewRequest(http.MethodGet, versionUrl, nil)
+	if err != nil {
+		log.Println("[Error] Unable to make request. Please try again.")
 		os.Exit(1)
-		return nil, errURL
+		return nil, err
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		log.Printf("[Error] : Retrieving contents from url: %s", mirrorURL)
+	req.Header.Set("User-Agent", "github-appinstaller")
+
+	res, getErr := gswitch.Do(req)
+	if getErr != nil {
+		log.Println("[Error] Unable to make request Please try again.")
 		os.Exit(1)
+		return nil, getErr
 	}
 
-	body, errBody := ioutil.ReadAll(resp.Body)
-	if errBody != nil {
-		log.Printf("[Error] : reading body: %v", errBody)
+	body, readErr := ioutil.ReadAll(res.Body)
+	if readErr != nil {
+		log.Println("[Error] Unable to get release from repo ", string(body))
 		os.Exit(1)
-		return nil, errBody
+		return nil, readErr
 	}
 
-	bodyString := string(body)
-	result := strings.Split(bodyString, "\n")
+	var repo ListVersion
+	jsonErr := json.Unmarshal(body, &repo)
+	if jsonErr != nil {
+		log.Println("[Error] Unable to get release from repo ", string(body))
+		os.Exit(1)
+		return nil, jsonErr
+	}
 
-	return result, nil
+	return repo.Versions, nil
+}
+
+type ListVersion struct {
+	Versions []string `json:"Versions"`
 }
 
 //VersionExist : check if requested version exist
