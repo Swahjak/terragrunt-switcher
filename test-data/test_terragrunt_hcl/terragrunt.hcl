@@ -14,3 +14,4 @@ terraform {
 )
 
 terraform_version_constraint=">= 0.13, < 0.14"
+terragrunt_version_constraint=">= 0.26.7, < 0.27"

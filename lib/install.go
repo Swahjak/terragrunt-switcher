@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	installFile               = "terraform"
-	versionPrefix             = "terraform_"
-	installPath               = ".terraform.versions"
+	installFile               = "terragrunt"
+	versionPrefix             = "terragrunt_"
+	installPath               = ".terragrunt.versions"
 	recentFile                = "RECENT"
-	defaultBin                = "/usr/local/bin/terraform" //default bin installation dir
+	defaultBin                = "/usr/local/bin/terragrunt" //default bin installation dir
 	tfDarwinArm64StartVersion = "1.0.2"
 )
 
@@ -25,26 +25,26 @@ var (
 	installLocation = "/tmp"
 )
 
-// initialize : removes existing symlink to terraform binary// I Don't think this is needed
+// initialize : removes existing symlink to terragrunt binary// I Don't think this is needed
 func initialize() {
 
 	/* Step 1 */
-	/* initilize default binary path for terraform */
-	/* assumes that terraform is installed here */
-	/* we will find the terraform path instalation later and replace this variable with the correct installed bin path */
-	installedBinPath := "/usr/local/bin/terraform"
+	/* initilize default binary path for terragrunt */
+	/* assumes that terragrunt is installed here */
+	/* we will find the terragrunt path instalation later and replace this variable with the correct installed bin path */
+	installedBinPath := "/usr/local/bin/terragrunt"
 
-	/* find terraform binary location if terraform is already installed*/
-	cmd := NewCommand("terraform")
+	/* find terragrunt binary location if terragrunt is already installed*/
+	cmd := NewCommand("terragrunt")
 	next := cmd.Find()
 
-	/* overrride installation default binary path if terraform is already installed */
+	/* overrride installation default binary path if terragrunt is already installed */
 	/* find the last bin path */
 	for path := next(); len(path) > 0; path = next() {
 		installedBinPath = path
 	}
 
-	/* check if current symlink to terraform binary exist */
+	/* check if current symlink to terragrunt binary exist */
 	symlinkExist := CheckSymlink(installedBinPath)
 
 	/* remove current symlink if exist*/
@@ -54,7 +54,7 @@ func initialize() {
 
 }
 
-// GetInstallLocation : get location where the terraform binary will be installed,
+// GetInstallLocation : get location where the terragrunt binary will be installed,
 // will create a directory in the home location if it does not exist
 func GetInstallLocation() string {
 	/* get current user */
@@ -76,35 +76,35 @@ func GetInstallLocation() string {
 }
 
 //Install : Install the provided version in the argument
-func Install(tfversion string, binPath string, mirrorURL string) {
+func Install(tgVersion string, binPath string, mirrorURL string) {
 
-	// if !ValidVersionFormat(tfversion) {
-	// 	fmt.Printf("The provided terraform version format does not exist - %s. Try `tfswitch -l` to see all available versions.\n", tfversion)
+	// if !ValidVersionFormat(tgVersion) {
+	// 	fmt.Printf("The provided terragrunt version format does not exist - %s. Try `tgswitch -l` to see all available versions.\n", tgVersion)
 	// 	os.Exit(1)
 	// }
 
-	/* Check to see if user has permission to the default bin location which is  "/usr/local/bin/terraform"
-	 * If user does not have permission to default bin location, proceed to create $HOME/bin and install the tfswitch there
-	 * Inform user that they dont have permission to default location, therefore tfswitch was installed in $HOME/bin
+	/* Check to see if user has permission to the default bin location which is  "/usr/local/bin/terragrunt"
+	 * If user does not have permission to default bin location, proceed to create $HOME/bin and install the tgswitch there
+	 * Inform user that they dont have permission to default location, therefore tgswitch was installed in $HOME/bin
 	 * Tell users to add $HOME/bin to their path
 	 */
 	binPath = InstallableBinLocation(binPath)
 
 	initialize()                           //initialize path
-	installLocation = GetInstallLocation() //get installation location -  this is where we will put our terraform binary file
+	installLocation = GetInstallLocation() //get installation location -  this is where we will put our terragrunt binary file
 
 	goarch := runtime.GOARCH
 	goos := runtime.GOOS
 
-	// Terraform darwin arm64 comes with 1.0.2 and next version
-	tfver, _ := version.NewVersion(tfversion)
+	// terragrunt darwin arm64 comes with 1.0.2 and next version
+	tfver, _ := version.NewVersion(tgVersion)
 	tf102, _ := version.NewVersion(tfDarwinArm64StartVersion)
 	if goos == "darwin" && goarch == "arm64" && tfver.LessThan(tf102) {
 		goarch = "amd64"
 	}
 
 	/* check if selected version already downloaded */
-	installFileVersionPath := ConvertExecutableExt(filepath.Join(installLocation, versionPrefix+tfversion))
+	installFileVersionPath := ConvertExecutableExt(filepath.Join(installLocation, versionPrefix+tgVersion))
 	fileExist := CheckFileExist(installFileVersionPath)
 
 	/* if selected version already exist, */
@@ -119,8 +119,8 @@ func Install(tfversion string, binPath string, mirrorURL string) {
 
 		/* set symlink to desired version */
 		CreateSymlink(installFileVersionPath, binPath)
-		fmt.Printf("Switched terraform to version %q \n", tfversion)
-		AddRecent(tfversion) //add to recent file for faster lookup
+		fmt.Printf("Switched terragrunt to version %q \n", tgVersion)
+		AddRecent(tgVersion) //add to recent file for faster lookup
 		os.Exit(0)
 	}
 
@@ -132,8 +132,8 @@ func Install(tfversion string, binPath string, mirrorURL string) {
 
 	/* if selected version already exist, */
 	/* proceed to download it from the hashicorp release page */
-	url := mirrorURL + tfversion + "/" + versionPrefix + tfversion + "_" + goos + "_" + goarch + ".zip"
-	zipFile, errDownload := DownloadFromURL(installLocation, url)
+	url := mirrorURL + "v" + tgVersion + "/" + versionPrefix + goos + "_" + goarch
+	downloadedFile, errDownload := DownloadFromURL(installLocation, url)
 
 	/* If unable to download file from url, exit(1) immediately */
 	if errDownload != nil {
@@ -142,19 +142,17 @@ func Install(tfversion string, binPath string, mirrorURL string) {
 	}
 
 	/* unzip the downloaded zipfile */
-	_, errUnzip := Unzip(zipFile, installLocation)
-	if errUnzip != nil {
+	errMove := MoveFile(downloadedFile, installFileVersionPath)
+	if errMove != nil {
 		fmt.Println("[Error] : Unable to unzip downloaded zip file")
-		log.Fatal(errUnzip)
+		log.Fatal(errMove)
 		os.Exit(1)
 	}
 
-	/* rename unzipped file to terraform version name - terraform_x.x.x */
-	installFilePath := ConvertExecutableExt(filepath.Join(installLocation, installFile))
-	RenameFile(installFilePath, installFileVersionPath)
-
-	/* remove zipped file to clear clutter */
-	RemoveFiles(zipFile)
+	err := os.Chmod(installFileVersionPath, 0755)
+	if err != nil {
+		log.Println(err)
+	}
 
 	/* remove current symlink if exist*/
 	symlinkExist := CheckSymlink(binPath)
@@ -165,15 +163,15 @@ func Install(tfversion string, binPath string, mirrorURL string) {
 
 	/* set symlink to desired version */
 	CreateSymlink(installFileVersionPath, binPath)
-	fmt.Printf("Switched terraform to version %q \n", tfversion)
-	AddRecent(tfversion) //add to recent file for faster lookup
+	fmt.Printf("Switched terragrunt to version %q \n", tgVersion)
+	AddRecent(tgVersion) //add to recent file for faster lookup
 	os.Exit(0)
 }
 
 // AddRecent : add to recent file
 func AddRecent(requestedVersion string) {
 
-	installLocation = GetInstallLocation() //get installation location -  this is where we will put our terraform binary file
+	installLocation = GetInstallLocation() //get installation location -  this is where we will put our terragrunt binary file
 	versionFile := filepath.Join(installLocation, recentFile)
 
 	fileExist := CheckFileExist(versionFile)
@@ -216,7 +214,7 @@ func AddRecent(requestedVersion string) {
 // GetRecentVersions : get recent version from file
 func GetRecentVersions() ([]string, error) {
 
-	installLocation = GetInstallLocation() //get installation location -  this is where we will put our terraform binary file
+	installLocation = GetInstallLocation() //get installation location -  this is where we will put our terragrunt binary file
 	versionFile := filepath.Join(installLocation, recentFile)
 
 	fileExist := CheckFileExist(versionFile)
@@ -240,7 +238,7 @@ func GetRecentVersions() ([]string, error) {
 				return nil, errRead
 			}
 
-			/* 	output can be confusing since it displays the 3 most recent used terraform version
+			/* 	output can be confusing since it displays the 3 most recent used terragrunt version
 			append the string *recent to the output to make it more user friendly
 			*/
 			outputRecent = append(outputRecent, fmt.Sprintf("%s *recent", line))
@@ -255,7 +253,7 @@ func GetRecentVersions() ([]string, error) {
 //CreateRecentFile : create a recent file
 func CreateRecentFile(requestedVersion string) {
 
-	installLocation = GetInstallLocation() //get installation location -  this is where we will put our terraform binary file
+	installLocation = GetInstallLocation() //get installation location -  this is where we will put our terragrunt binary file
 
 	WriteLines([]string{requestedVersion}, filepath.Join(installLocation, recentFile))
 }
@@ -273,7 +271,7 @@ func ConvertExecutableExt(fpath string) string {
 	}
 }
 
-//InstallableBinLocation : Checks if terraform is installable in the location provided by the user.
+//InstallableBinLocation : Checks if terragrunt is installable in the location provided by the user.
 //If not, create $HOME/bin. Ask users to add  $HOME/bin to $PATH and return $HOME/bin as install location
 func InstallableBinLocation(userBinPath string) string {
 
@@ -292,19 +290,19 @@ func InstallableBinLocation(userBinPath string) string {
 			binPathWritable = CheckDirWritable(binDir) //check if is writable on ( only works on LINUX)
 		}
 
-		// IF: "/usr/local/bin" or `custom bin path` provided by user is non-writable, (binPathWritable == false), we will attempt to install terraform at the ~/bin location. See ELSE
+		// IF: "/usr/local/bin" or `custom bin path` provided by user is non-writable, (binPathWritable == false), we will attempt to install terragrunt at the ~/bin location. See ELSE
 		if binPathWritable == false {
 
 			homeBinExist := CheckDirExist(filepath.Join(usr.HomeDir, "bin")) //check to see if ~/bin exist
-			if homeBinExist {                                                //if ~/bin exist, install at ~/bin/terraform
-				fmt.Printf("Installing terraform at %s\n", filepath.Join(usr.HomeDir, "bin"))
-				return filepath.Join(usr.HomeDir, "bin", "terraform")
-			} else { //if ~/bin directory does not exist, create ~/bin for terraform installation
+			if homeBinExist {                                                //if ~/bin exist, install at ~/bin/terragrunt
+				fmt.Printf("Installing terragrunt at %s\n", filepath.Join(usr.HomeDir, "bin"))
+				return filepath.Join(usr.HomeDir, "bin", "terragrunt")
+			} else { //if ~/bin directory does not exist, create ~/bin for terragrunt installation
 				fmt.Printf("Unable to write to: %s\n", userBinPath)
 				fmt.Printf("Creating bin directory at: %s\n", filepath.Join(usr.HomeDir, "bin"))
 				CreateDirIfNotExist(filepath.Join(usr.HomeDir, "bin")) //create ~/bin
 				fmt.Printf("RUN `export PATH=$PATH:%s` to append bin to $PATH\n", filepath.Join(usr.HomeDir, "bin"))
-				return filepath.Join(usr.HomeDir, "bin", "terraform")
+				return filepath.Join(usr.HomeDir, "bin", "terragrunt")
 			}
 		} else { // ELSE: the "/usr/local/bin" or custom path provided by user is writable, we will return installable location
 			return filepath.Join(userBinPath)

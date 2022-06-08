@@ -5,20 +5,20 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/warrensbox/terraform-switcher/lib"
+	"github.com/Swahjak/terragrunt-switcher/lib"
 )
 
 const (
-	hashiURL = "https://releases.hashicorp.com/terraform/"
+	versionUrl = "https://warrensbox.github.io/terragunt-versions-list/index.json"
 )
 
 // TestGetTFList : Get list from hashicorp
 func TestGetTFList(t *testing.T) {
 
 	listAll := true
-	list, _ := lib.GetTFList(hashiURL, listAll)
+	list, _ := lib.GetTGList(versionUrl, listAll)
 
-	val := "0.1.0"
+	val := "0.26.7"
 	var exists bool
 
 	switch reflect.TypeOf(list).Kind() {

@@ -5,7 +5,7 @@ builds:
     ldflags:
       - -s -w -X "main.version={{.Env.RELEASE_VERSION}}"
     main: main.go
-    binary: tfswitch
+    binary: tgswitch
     goos:
       - darwin
       - linux
@@ -44,7 +44,7 @@ brews:
   -
     # Name of the recipe
     # Default to project name
-    name: tfswitch
+    name: tgswitch
 
   # GitHub/GitLab repository to push the formula to
     # Gitea is not supported yet, but the support coming
@@ -73,19 +73,19 @@ brews:
 
     # Caveats for the user of your binary.
     # Default is empty.
-    caveats: "Type 'tfswitch' on your command line and choose the terraform version that you want from the dropdown. This command currently only works on macOS and Linux"
+    caveats: "Type 'tgswitch' on your command line and choose the terragrunt version that you want from the dropdown. This command currently only works on macOS and Linux"
 
     # Your app's homepage.
     # Default is empty.
-    homepage: "https://warrensbox.github.io/terraform-switcher"
+    homepage: "https://warrensbox.github.io/terragrunt-switcher"
 
     # Your app's description.
     # Default is empty.
-    description: "The tfswitch command lets you switch between terraform versions."
+    description: "The tgswitch command lets you switch between terragrunt versions."
 
     # Packages that conflict with your package.
     conflicts:
-      - terraform
+      - terragrunt
 
     # Setting this will prevent goreleaser to actually try to commit the updated
     # formula - instead, the formula file will be stored on the dist folder only,
@@ -96,8 +96,8 @@ brews:
     # So you can `brew test` your formula.
     # Default is empty.
     test: |
-      system "#{bin}/tfswitch --version"
+      system "#{bin}/tgswitch --version"
     # Custom install script for brew.
     # Default is 'bin.install "program"'.
     install: |
-      bin.install "tfswitch"
+      bin.install "tgswitch"

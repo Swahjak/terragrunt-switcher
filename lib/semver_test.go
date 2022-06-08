@@ -3,7 +3,7 @@ package lib_test
 import (
 	"testing"
 
-	"github.com/warrensbox/terraform-switcher/lib"
+	"github.com/Swahjak/terragrunt-switcher/lib"
 )
 
 var versionsRaw = []string{
@@ -22,13 +22,13 @@ var versionsRaw = []string{
 // Test version 1.1
 func TestSemverParserCase1(t *testing.T) {
 
-	tfconstraint := "1.1"
-	tfversion, _ := lib.SemVerParser(&tfconstraint, versionsRaw)
+	tgConstraint := "1.1"
+	tgVersion, _ := lib.SemVerParser(&tgConstraint, versionsRaw)
 	expected := "1.1.0"
-	if tfversion == expected {
+	if tgVersion == expected {
 		t.Logf("Version exist in list %v [expected]", expected)
 	} else {
-		t.Logf("Version does not exist in list %v [unexpected]", tfconstraint)
+		t.Logf("Version does not exist in list %v [unexpected]", tgConstraint)
 		t.Errorf("This is unexpected. Parsing failed. Expected: %v", expected)
 	}
 }
@@ -37,13 +37,13 @@ func TestSemverParserCase1(t *testing.T) {
 // Test version ~> 1.1 should return  1.1.4
 func TestSemverParserCase2(t *testing.T) {
 
-	tfconstraint := "~> 1.1.0"
-	tfversion, _ := lib.SemVerParser(&tfconstraint, versionsRaw)
+	tgConstraint := "~> 1.1.0"
+	tgVersion, _ := lib.SemVerParser(&tgConstraint, versionsRaw)
 	expected := "1.1.4"
-	if tfversion == expected {
+	if tgVersion == expected {
 		t.Logf("Version exist in list %v [expected]", expected)
 	} else {
-		t.Logf("Version does not exist in list %v [unexpected]", tfconstraint)
+		t.Logf("Version does not exist in list %v [unexpected]", tgConstraint)
 		t.Errorf("This is unexpected. Parsing failed. Expected: %v", expected)
 	}
 }
@@ -52,12 +52,12 @@ func TestSemverParserCase2(t *testing.T) {
 // Test version ~> 1.1 should return  1.1.4
 func TestSemverParserCase3(t *testing.T) {
 
-	tfconstraint := "~> 1.A.0"
-	_, err := lib.SemVerParser(&tfconstraint, versionsRaw)
+	tgConstraint := "~> 1.A.0"
+	_, err := lib.SemVerParser(&tgConstraint, versionsRaw)
 	if err != nil {
-		t.Logf("This test is suppose to error %v [expected]", tfconstraint)
+		t.Logf("This test is suppose to error %v [expected]", tgConstraint)
 	} else {
-		t.Errorf("This test is suppose to error but passed %v [expected]", tfconstraint)
+		t.Errorf("This test is suppose to error but passed %v [expected]", tgConstraint)
 	}
 }
 
@@ -65,13 +65,13 @@ func TestSemverParserCase3(t *testing.T) {
 // Test version ~> >= 1.0, < 1.4 should return  1.3.0
 func TestSemverParserCase4(t *testing.T) {
 
-	tfconstraint := ">= 1.0, < 1.4"
-	tfversion, _ := lib.SemVerParser(&tfconstraint, versionsRaw)
+	tgConstraint := ">= 1.0, < 1.4"
+	tgVersion, _ := lib.SemVerParser(&tgConstraint, versionsRaw)
 	expected := "1.3.0"
-	if tfversion == expected {
+	if tgVersion == expected {
 		t.Logf("Version exist in list %v [expected]", expected)
 	} else {
-		t.Logf("Version does not exist in list %v [unexpected]", tfconstraint)
+		t.Logf("Version does not exist in list %v [unexpected]", tgConstraint)
 		t.Errorf("This is unexpected. Parsing failed. Expected: %v", expected)
 	}
 }
@@ -80,13 +80,13 @@ func TestSemverParserCase4(t *testing.T) {
 // Test version ~> >= 1.0 should return  2.0.0
 func TestSemverParserCase5(t *testing.T) {
 
-	tfconstraint := ">= 1.0"
-	tfversion, _ := lib.SemVerParser(&tfconstraint, versionsRaw)
+	tgConstraint := ">= 1.0"
+	tgVersion, _ := lib.SemVerParser(&tgConstraint, versionsRaw)
 	expected := "2.0.0"
-	if tfversion == expected {
+	if tgVersion == expected {
 		t.Logf("Version exist in list %v [expected]", expected)
 	} else {
-		t.Logf("Version does not exist in list %v [unexpected]", tfconstraint)
+		t.Logf("Version does not exist in list %v [unexpected]", tgConstraint)
 		t.Errorf("This is unexpected. Parsing failed. Expected: %v", expected)
 	}
 }

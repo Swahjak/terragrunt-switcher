@@ -15,15 +15,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/warrensbox/terraform-switcher/lib"
+	"github.com/Swahjak/terragrunt-switcher/lib"
 )
 
 // TestRenameFile : Create a file, check filename exist,
 // rename file, check new filename exit
 func TestRenameFile(t *testing.T) {
-	installFile := lib.ConvertExecutableExt("terraform")
-	installVersion := "terraform_"
-	installPath := "/.terraform.versions_test/"
+	installFile := lib.ConvertExecutableExt("terragrunt")
+	installVersion := "terragrunt_"
+	installPath := "/.terragrunt.versions_test/"
 	version := "0.0.7"
 
 	usr, errCurr := user.Current()
@@ -69,8 +69,8 @@ func TestRenameFile(t *testing.T) {
 // TestRemoveFiles : Create a file, check file exist,
 // remove file, check file does not exist
 func TestRemoveFiles(t *testing.T) {
-	installFile := lib.ConvertExecutableExt("terraform")
-	installPath := "/.terraform.versions_test/"
+	installFile := lib.ConvertExecutableExt("terragrunt")
+	installPath := "/.terragrunt.versions_test/"
 
 	usr, errCurr := user.Current()
 	if errCurr != nil {
@@ -106,8 +106,9 @@ func TestRemoveFiles(t *testing.T) {
 // TestUnzip : Create a file, check file exist,
 // remove file, check file does not exist
 func TestUnzip(t *testing.T) {
-	installPath := "/.terraform.versions_test/"
-	absPath, _ := filepath.Abs("../test-data/test-data.zip")
+	installDir := "/.terragrunt.versions_test"
+	installPath := installDir + "/test-data"
+	absPath, _ := filepath.Abs("../test-data/test-data")
 
 	fmt.Println(absPath)
 
@@ -115,25 +116,17 @@ func TestUnzip(t *testing.T) {
 	if errCurr != nil {
 		log.Fatal(errCurr)
 	}
+	installDir = filepath.Join(usr.HomeDir, installDir)
 	installLocation := filepath.Join(usr.HomeDir, installPath)
 
-	createDirIfNotExist(installLocation)
+	createDirIfNotExist(installDir)
 
-	files, errUnzip := lib.Unzip(absPath, installLocation)
+	errMove := lib.MoveFile(absPath, installLocation)
 
-	if errUnzip != nil {
+	if errMove != nil {
 		fmt.Println("Unable to unzip zip file")
-		log.Fatal(errUnzip)
+		log.Fatal(errMove)
 		os.Exit(1)
-	}
-
-	tst := strings.Join(files, "")
-
-	if exist := checkFileExist(tst); exist {
-		t.Logf("File exist %v", tst)
-	} else {
-		t.Logf("File does not exist %v", tst)
-		t.Error("Missing file")
 	}
 
 	cleanUp(installLocation)
@@ -141,7 +134,7 @@ func TestUnzip(t *testing.T) {
 
 // TestCreateDirIfNotExist : Create a directory, check directory exist
 func TestCreateDirIfNotExist(t *testing.T) {
-	installPath := "/.terraform.versions_test/"
+	installPath := "/.terragrunt.versions_test/"
 
 	usr, errCurr := user.Current()
 	if errCurr != nil {
@@ -173,7 +166,7 @@ func TestCreateDirIfNotExist(t *testing.T) {
 
 //TestWriteLines : write to file, check readline to verify
 func TestWriteLines(t *testing.T) {
-	installPath := "/.terraform.versions_test/"
+	installPath := "/.terragrunt.versions_test/"
 	recentFile := "RECENT"
 	semverRegex := regexp.MustCompile(`\A\d+(\.\d+){2}(-\w+\d*)?\z`)
 	//semverRegex := regexp.MustCompile(`\A\d+(\.\d+){2}\z`)
@@ -242,7 +235,7 @@ func TestWriteLines(t *testing.T) {
 
 // TestReadLines : read from file, check write to verify
 func TestReadLines(t *testing.T) {
-	installPath := "/.terraform.versions_test/"
+	installPath := "/.terragrunt.versions_test/"
 	recentFile := "RECENT"
 	semverRegex := regexp.MustCompile(`\A\d+(\.\d+){2}(-\w+\d*)?\z`)
 
@@ -297,7 +290,7 @@ func TestReadLines(t *testing.T) {
 func TestIsDirEmpty(t *testing.T) {
 	current := time.Now()
 
-	installPath := "/.terraform.versions_test/"
+	installPath := "/.terragrunt.versions_test/"
 
 	usr, errCurr := user.Current()
 	if errCurr != nil {
@@ -331,8 +324,8 @@ func TestIsDirEmpty(t *testing.T) {
 func TestCheckDirHasTFBin(t *testing.T) {
 	goarch := runtime.GOARCH
 	goos := runtime.GOOS
-	installPath := "/.terraform.versions_test/"
-	installFilePrefix := "terraform"
+	installPath := "/.terragrunt.versions_test/"
+	installFilePrefix := "terragrunt"
 
 	usr, errCurr := user.Current()
 	if errCurr != nil {
@@ -360,8 +353,8 @@ func TestCheckDirHasTFBin(t *testing.T) {
 
 // TestPath : create file in directory, check if path exist
 func TestPath(t *testing.T) {
-	installPath := "/.terraform.versions_test"
-	installFile := lib.ConvertExecutableExt("terraform")
+	installPath := "/.terragrunt.versions_test"
+	installFile := lib.ConvertExecutableExt("terragrunt")
 
 	usr, errCurr := user.Current()
 	if errCurr != nil {
@@ -388,7 +381,7 @@ func TestPath(t *testing.T) {
 	cleanUp(installLocation)
 }
 
-// TestGetFileName : remove file ext.  .tfswitch.config returns .tfswitch
+// TestGetFileName : remove file ext.  .tgswitch.config returns .tgswitch
 func TestGetFileName(t *testing.T) {
 
 	fileNameWithExt := "file.toml"
@@ -409,12 +402,12 @@ func TestConvertExecutableExt(t *testing.T) {
 		log.Fatal(errCurr)
 	}
 
-	installPath := "/.terraform.versions_test/"
+	installPath := "/.terragrunt.versions_test/"
 	test_array := []string{
-		"terraform",
-		"terraform.exe",
-		filepath.Join(usr.HomeDir, installPath, "terraform"),
-		filepath.Join(usr.HomeDir, installPath, "terraform.exe"),
+		"terragrunt",
+		"terragrunt.exe",
+		filepath.Join(usr.HomeDir, installPath, "terragrunt"),
+		filepath.Join(usr.HomeDir, installPath, "terragrunt.exe"),
 	}
 
 	for _, fpath := range test_array {

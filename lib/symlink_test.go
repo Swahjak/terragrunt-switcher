@@ -7,16 +7,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/warrensbox/terraform-switcher/lib"
+	"github.com/Swahjak/terragrunt-switcher/lib"
 )
 
 // TestCreateSymlink : check if symlink exist-remove if exist,
 // create symlink, check if symlink exist, remove symlink
 func TestCreateSymlink(t *testing.T) {
 
-	testSymlinkSrc := "/test-tfswitcher-src"
+	testSymlinkSrc := "/test-tgswitcher-src"
 
-	testSymlinkDest := "/test-tfswitcher-dest"
+	testSymlinkDest := "/test-tgswitcher-dest"
 
 	usr, errCurr := user.Current()
 	if errCurr != nil {
@@ -52,9 +52,9 @@ func TestCreateSymlink(t *testing.T) {
 // remove symlink, check if symlink exist
 func TestRemoveSymlink(t *testing.T) {
 
-	testSymlinkSrc := "/test-tfswitcher-src"
+	testSymlinkSrc := "/test-tgswitcher-src"
 
-	testSymlinkDest := "/test-tfswitcher-dest"
+	testSymlinkDest := "/test-tgswitcher-dest"
 
 	usr, errCurr := user.Current()
 	if errCurr != nil {
