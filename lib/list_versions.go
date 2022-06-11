@@ -64,7 +64,7 @@ func GetTGLatest(versionUrl string) (string, error) {
 		return "", error
 	}
 	// Getting versions from body; should return match /X.X.X/ where X is a number
-	semver := `^(\d+\.\d+\.\d+)$"`
+	semver := `^(\d+\.\d+\.\d+)$`
 	r, _ := regexp.Compile(semver)
 	for i := range result {
 		if r.MatchString(result[i]) {
@@ -86,7 +86,7 @@ func GetTGLatestImplicit(versionUrl string, preRelease bool, version string) (st
 			return "", error
 		}
 		// Getting versions from body; should return match /X.X.X-@/ where X is a number,@ is a word character between a-z or A-Z
-		semver := fmt.Sprintf(`^(%s{1}\.\d+\-[a-zA-z]+\d*)$"`, version)
+		semver := fmt.Sprintf(`^(%s{1}\.\d+\-[a-zA-z]+\d*)$`, version)
 		r, err := regexp.Compile(semver)
 		if err != nil {
 			return "", err

@@ -230,7 +230,7 @@ func installWithListAll(custBinPath, mirrorURL *string, versionURL *string) {
 // install latest stable tg version
 func installLatestVersion(custBinPath, mirrorURL *string, versionURL *string) {
 	tgversion, _ := lib.GetTGLatest(*versionURL)
-	lib.Install(tgversion, *custBinPath, *versionURL)
+	lib.Install(tgversion, *custBinPath, *mirrorURL)
 }
 
 // show install latest stable tg version
